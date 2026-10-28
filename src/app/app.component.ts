@@ -385,7 +385,7 @@ export class AppComponent {
         colPivote: pc,
       });
  
-      // 3) Fila pivote: solución ÷ columna, solo cocientes positivos
+      // 3) Fila pivote: solución ÷ columna, solo cocientes positivos 
       const cocientes: (number | null)[] = Array.from({ length: m }, (_, i) =>
         t[i][pc] > EPS ? t[i][ncols] / t[i][pc] : null
       );

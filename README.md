@@ -55,7 +55,7 @@ Resultado esperado: x₁ = 2, x₂ = 6 y Z = 36.
 
 
 No necesita conexión a internet ni dependencias extra. Las animaciones son CSS y las fuentes son las del sistema.
-
+ 
 Desarrollado por **CrissMzs**.
 
 GitHub: [github.com/CrissMzs](https://github.com/CrissMzs)
