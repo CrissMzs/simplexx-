@@ -53,40 +53,6 @@ Resultado esperado: x₁ = 2, x₂ = 6 y Z = 36.
 - Los números se muestran con hasta 4 decimales, no como fracciones.
 - Si el problema no está acotado, o si no converge en 50 iteraciones, el programa lo indica.
 
-## Estructura de los archivos
-
-```
-simplex/
-  simplex.component.ts     Lógica del simplex y control de la pantalla
-  simplex.component.html   Estructura de la interfaz
-  simplex.component.css    Estilos y animaciones
-  README.md                Este archivo
-```
-
-## Instalación en un proyecto Tauri con Angular
-
-1. Copia la carpeta `simplex` dentro de `src/app/`.
-2. Importa el componente. Es standalone, así que se agrega directamente:
-
-   ```ts
-   import { SimplexComponent } from './simplex/simplex.component';
-
-   @Component({
-     selector: 'app-root',
-     standalone: true,
-     imports: [SimplexComponent],
-     template: '<app-simplex />',
-   })
-   export class AppComponent {}
-   ```
-
-3. Si tu proyecto usa módulos (NgModule), declara el componente y asegúrate de importar `FormsModule` y `CommonModule`.
-4. Ejecuta la aplicación:
-
-   ```bash
-   npm install
-   npm run tauri dev
-   ```
 
 No necesita conexión a internet ni dependencias extra. Las animaciones son CSS y las fuentes son las del sistema.
 
