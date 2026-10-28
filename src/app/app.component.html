@@ -1,0 +1,222 @@
+<main class="lab">
+  <header class="cabecera">
+    <div class="barra-menu">
+      <h1>SimpleX</h1>
+      <nav class="menu" aria-label="Menú">
+        <button class="btn" (click)="abrirCreditos()" aria-haspopup="dialog">Créditos</button>
+      </nav>
+    </div>
+    <p class="lema">Maximiza Z con restricciones ≤. Las condiciones de no negatividad se asumen.</p>
+
+    <ol class="pasos" aria-label="Progreso">
+      <li [class.activo]="paso === 1" [class.hecho]="paso > 1">Tamaño</li>
+      <li [class.activo]="paso === 2" [class.hecho]="paso > 2">Datos</li>
+      <li [class.activo]="paso === 3">Solución</li>
+    </ol>
+  </header>
+
+  <!-- ============ PASO 1: tamaño ============ -->
+  <section *ngIf="paso === 1" class="panel entra" aria-labelledby="t1">
+    <h2 id="t1">¿De qué tamaño es tu problema?</h2>
+
+    <div class="campos">
+      <label class="campo">
+        <span>Variables de decisión</span>
+        <input type="number" min="1" max="8" [(ngModel)]="numVars" />
+        <small>x₁, x₂, … (máximo 8)</small>
+      </label>
+
+      <label class="campo">
+        <span>Restricciones</span>
+        <input type="number" min="1" max="8" [(ngModel)]="numRest" />
+        <small>No cuentes las de no negatividad: ya se asumen. Máximo 8.</small>
+      </label>
+    </div>
+
+    <div class="acciones">
+      <button class="btn primario" (click)="irADatos()">Continuar</button>
+      <button class="btn" (click)="cargarEjemplo()">Cargar ejemplo</button>
+    </div>
+  </section>
+
+  <!-- ============ PASO 2: datos ============ -->
+  <section *ngIf="paso === 2" class="panel entra" aria-labelledby="t2">
+    <h2 id="t2">Función objetivo y restricciones</h2>
+
+    <div class="bloque">
+      <h3>Maximizar Z</h3>
+      <div class="expresion">
+        <span class="igual">Z =</span>
+        <ng-container *ngFor="let c of objetivo; let j = index; trackBy: porIndice">
+          <span *ngIf="j > 0" class="op">+</span>
+          <span class="termino">
+            <input type="number" step="any" [(ngModel)]="objetivo[j]" [attr.aria-label]="'Coeficiente de ' + nombresX[j] + ' en Z'" />
+            <span class="var">{{ nombresX[j] }}</span>
+          </span>
+        </ng-container>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <h3>Sujeto a</h3>
+      <div class="expresion" *ngFor="let fila of A; let i = index; trackBy: porIndice">
+        <ng-container *ngFor="let a of fila; let j = index; trackBy: porIndice">
+          <span *ngIf="j > 0" class="op">+</span>
+          <span class="termino">
+            <input type="number" step="any" [(ngModel)]="A[i][j]" [attr.aria-label]="'Restricción ' + (i + 1) + ', coeficiente de ' + nombresX[j]" />
+            <span class="var">{{ nombresX[j] }}</span>
+          </span>
+        </ng-container>
+        <span class="op">≤</span>
+        <input class="derecha" type="number" step="any" [(ngModel)]="b[i]" [attr.aria-label]="'Lado derecho de la restricción ' + (i + 1)" />
+      </div>
+    </div>
+
+    <div class="bloque estandar">
+      <h3>Forma estándar con holguras</h3>
+      <p class="eq z">{{ ecuacionZ }}</p>
+      <p class="eq" *ngFor="let r of A; let i = index; trackBy: porIndice">{{ ecuacionRestriccion(i) }}</p>
+    </div>
+
+    <p class="error" *ngIf="error" role="alert">{{ error }}</p>
+
+    <div class="acciones">
+      <button class="btn texto peligro" (click)="cancelar()">Cancelar</button>
+      <span class="espacio"></span>
+      <button class="btn" (click)="volver()">Atrás</button>
+      <button class="btn primario" (click)="resolver()">Resolver</button>
+    </div>
+  </section>
+
+  <!-- ============ PASO 3: solución animada ============ -->
+  <section *ngIf="paso === 3 && frame as f" class="panel entra" aria-live="polite">
+    <div class="estado">
+      <span class="ficha" [attr.data-fase]="f.fase">{{ etiquetasFase[f.fase] }}</span>
+      <span class="contador">
+        Iteración {{ f.iter }} de {{ totalIteraciones }}
+        · cuadro {{ idx + 1 }} de {{ frames.length }}
+      </span>
+    </div>
+
+    <div class="mensaje" [class.in-a]="idx % 2 === 0" [class.in-b]="idx % 2 === 1">
+      <h2>{{ f.titulo }}</h2>
+      <p>{{ f.mensaje }}</p>
+    </div>
+
+    <div class="tabla-scroll">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th class="esq">Base</th>
+            <th>Z</th>
+            <th
+              *ngFor="let c of colNames; let j = index; trackBy: porIndice"
+              [class.col-pivote]="f.colPivote === j"
+            >
+              {{ c }}
+            </th>
+            <th class="sol">Solución</th>
+            <th *ngIf="f.cocientes" class="razon-cab">Solución ÷ columna</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let fila of f.tabla; let i = index; trackBy: porIndice"
+            [class.z-fila]="i === numRest"
+            [class.fila-pivote]="f.filaPivote === i"
+          >
+            <th
+              class="base"
+              [class.base-nueva]="f.fase === 'normalizar' && f.filaPivote === i"
+              [class.flash-a]="f.filasCambiadas.includes(i) && idx % 2 === 0"
+              [class.flash-b]="f.filasCambiadas.includes(i) && idx % 2 === 1"
+            >
+              {{ f.base[i] }}
+            </th>
+            <td class="zcol">{{ i === numRest ? 1 : 0 }}</td>
+            <td
+              *ngFor="let v of fila; let j = index; trackBy: porIndice"
+              [ngClass]="clasesCelda(f, i, j, v)"
+            >
+              {{ fmt(v) }}
+            </td>
+            <td
+              *ngIf="f.cocientes"
+              class="razon"
+              [class.razon-min]="f.filaPivote === i"
+            >
+              <ng-container *ngIf="i < numRest">
+                {{ f.cocientes[i] === null ? 'no válido' : fmt(f.cocientes[i]!) }}
+              </ng-container>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="resultado" *ngIf="f.solucion as s">
+      <h3>Z máximo = <span class="zvalor">{{ fmt(s.z) }}</span></h3>
+      <ul>
+        <li
+          *ngFor="let v of s.variables; let k = index"
+          [class.basica]="v.basica"
+          [style.animation-delay.ms]="k * 90"
+        >
+          <span class="nom">{{ v.nombre }}</span>
+          <span class="val">{{ fmt(v.valor) }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="reproductor">
+      <input
+        class="barra"
+        type="range"
+        min="0"
+        [max]="frames.length - 1"
+        [ngModel]="idx"
+        (ngModelChange)="ir($event)"
+        aria-label="Cuadro de la solución"
+      />
+
+      <div class="controles">
+        <div class="flechas">
+          <button class="btn flecha" (click)="anterior()" [disabled]="idx === 0" aria-label="Paso anterior">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+          </button>
+          <button class="btn flecha primario" (click)="siguiente()" [disabled]="esUltimo" aria-label="Paso siguiente">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+        <span class="espacio"></span>
+        <button class="btn texto" (click)="volver()">Editar datos</button>
+        <button class="btn texto peligro" (click)="cancelar()">Cancelar</button>
+      </div>
+      <p class="atajo">Usa las flechas izquierda y derecha del teclado para retroceder o avanzar.</p>
+    </div>
+  </section>
+
+  <!-- ============ Créditos ============ -->
+  <div class="velo" *ngIf="creditosAbierto" (click)="cerrarCreditos()">
+    <div class="hoja" role="dialog" aria-modal="true" aria-labelledby="tc" (click)="$event.stopPropagation()">
+      <h2 id="tc">Créditos</h2>
+      <p class="creador">Desarrollado por</p>
+      <p class="nombre">CrissMzs</p>
+
+      <a
+        class="enlace-github"
+        href="https://github.com/CrissMzs"
+        target="_blank"
+        rel="noopener noreferrer"
+        (click)="abrirGithub($event)"
+      >
+        <svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+        <span>github.com/CrissMzs</span>
+      </a>
+
+      <button class="btn primario" (click)="cerrarCreditos()">Listo</button>
+    </div>
+  </div>
+</main>
